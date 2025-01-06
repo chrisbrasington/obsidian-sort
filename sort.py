@@ -98,11 +98,11 @@ def main(stdscr):
                 selected_index = min(selected_index + 1, len(entries) - 1)
             else:
                 selected_index = min(selected_index + 1, len(entries) - 1)
-        elif key == ord('<'):
+        elif key == ord(','): # < key
             if not moving_mode:
                 current_page = max(current_page - 1, 0)
                 selected_index = max(selected_index, current_page * PAGE_SIZE)
-        elif key == ord('>'):
+        elif key == ord('.'): # > key
             if not moving_mode:
                 max_page = (len(entries) - 1) // PAGE_SIZE
                 current_page = min(current_page + 1, max_page)
