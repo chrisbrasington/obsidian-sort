@@ -3,14 +3,20 @@ import os
 import re
 import curses
 
+# DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Playing")
+# DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Manga/Reading")
 DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Backlog")
-PAGE_SIZE = 50
+PAGE_SIZE = 100
 SORT_REGEX = r"^sort:\s*(-?\d+(\.\d+)?)"
 
 def read_markdown_files(directory):
     files = []
     for file in os.listdir(directory):
         if file.endswith(".md"):
+            # if file contains 'hltb: ∞' in contents, ignore
+            with open(os.path.join(directory, file), "r") as f:
+                if "hltb: ∞" in f.read():
+                    continue
             files.append(os.path.join(directory, file))
     return files
 
@@ -128,6 +134,17 @@ def main(stdscr):
             except ValueError:
                 stdscr.addstr(PAGE_SIZE + 5, 0, "Invalid input. Press any key to continue.")
                 stdscr.getch()
+        elif key == ord('d'):
+            # remove the sort line from the file, save file, and refresh
+            entry = entries[selected_index]
+            with open(entry['file'], "r") as f:
+                lines = f.readlines()
+            with open(entry['file'], "w") as f:
+                for line in lines:
+                    if not re.match(SORT_REGEX, line):
+                        f.write(line)
+            entries = extract_sort_values(files)
+            selected_index = min(selected_index, len(entries) - 1)
         elif key == 10:  # Enter key
             if moving_mode:
                 moving_mode = False
