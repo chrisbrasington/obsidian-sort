@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
 import os
 import re
 import curses
 
 DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Backlog")
-PAGE_SIZE = 30
+PAGE_SIZE = 50
 SORT_REGEX = r"^sort:\s*(-?\d+(\.\d+)?)"
 
 def read_markdown_files(directory):
