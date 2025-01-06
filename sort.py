@@ -57,6 +57,11 @@ def resort_all(entries):
 
 def main(stdscr):
     curses.curs_set(0)
+    # Get the current terminal height and adjust PAGE_SIZE accordingly
+    terminal_height, _ = stdscr.getmaxyx()
+    global PAGE_SIZE
+    PAGE_SIZE = min(PAGE_SIZE, terminal_height - 4)  # Reserve space for status line and other elements
+
     files = read_markdown_files(DIRECTORY)
     entries = extract_sort_values(files)
 
