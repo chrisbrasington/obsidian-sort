@@ -2,23 +2,24 @@
 import os
 import re
 import curses
+import argparse
 
-# DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Playing")
-# DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Manga/Reading")
-# DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Backlog")
-DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Books/Backlog")
+# Default directory path
+DEFAULT_DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Backlog")
 PAGE_SIZE = 100
 SORT_REGEX = r"^sort:\s*(-?\d+(\.\d+)?)"
 
 def read_markdown_files(directory):
     files = []
-    for file in os.listdir(directory):
-        if file.endswith(".md"):
-            # if file contains 'hltb: ∞' in contents, ignore
-            with open(os.path.join(directory, file), "r") as f:
-                if "hltb: ∞" in f.read():
-                    continue
-            files.append(os.path.join(directory, file))
+    for root, _, filenames in os.walk(directory):
+        for file in filenames:
+            if file.endswith(".md"):
+                file_path = os.path.join(root, file)
+                # Skip files containing 'hltb: ∞' in their content
+                with open(file_path, "r") as f:
+                    if "hltb: ∞" in f.read():
+                        continue
+                files.append(file_path)
     return files
 
 def extract_sort_values(files):
@@ -62,14 +63,14 @@ def resort_all(entries):
             write_sort_value(entry['file'], current_value)
             current_value += increment
 
-def main(stdscr):
+def main(stdscr, directory):
     curses.curs_set(0)
     # Get the current terminal height and adjust PAGE_SIZE accordingly
     terminal_height, _ = stdscr.getmaxyx()
     global PAGE_SIZE
-    PAGE_SIZE = min(PAGE_SIZE, terminal_height - 10)  # Reserve space for status line and other elements
+    PAGE_SIZE = max(1, terminal_height - 10)  # Reserve space for the status line and other elements
 
-    files = read_markdown_files(DIRECTORY)
+    files = read_markdown_files(directory)
     entries = extract_sort_values(files)
 
     current_page = 0
@@ -102,25 +103,17 @@ def main(stdscr):
         key = stdscr.getch()
 
         if key == curses.KEY_UP:
-            if moving_mode:
-                selected_index = max(selected_index - 1, 0)
-            else:
-                selected_index = max(selected_index - 1, 0)
+            selected_index = max(selected_index - 1, 0)
         elif key == curses.KEY_DOWN:
-            if moving_mode:
-                selected_index = min(selected_index + 1, len(entries) - 1)
-            else:
-                selected_index = min(selected_index + 1, len(entries) - 1)
-        elif key == ord(','): # < key
-            if not moving_mode:
-                current_page = max(current_page - 1, 0)
-                selected_index = max(selected_index, current_page * PAGE_SIZE)
-        elif key == ord('.'): # > key
-            if not moving_mode:
-                max_page = (len(entries) - 1) // PAGE_SIZE
-                current_page = min(current_page + 1, max_page)
-                selected_index = min(selected_index, (current_page + 1) * PAGE_SIZE - 1)
-        elif key == ord('i') and not moving_mode:
+            selected_index = min(selected_index + 1, len(entries) - 1)
+        elif key == ord(','):  # < key
+            current_page = max(current_page - 1, 0)
+            selected_index = max(selected_index, current_page * PAGE_SIZE)
+        elif key == ord('.'):  # > key
+            max_page = (len(entries) - 1) // PAGE_SIZE
+            current_page = min(current_page + 1, max_page)
+            selected_index = min(selected_index, (current_page + 1) * PAGE_SIZE - 1)
+        elif key == ord('i'):
             entry = entries[selected_index]
             stdscr.addstr(PAGE_SIZE + 3, 0, f"Enter new sort value for {os.path.basename(entry['file'])}: ")
             curses.echo()
@@ -135,40 +128,26 @@ def main(stdscr):
             except ValueError:
                 stdscr.addstr(PAGE_SIZE + 5, 0, "Invalid input. Press any key to continue.")
                 stdscr.getch()
-        elif key == ord('d'):
-            # remove the sort line from the file, save file, and refresh
-            entry = entries[selected_index]
-            with open(entry['file'], "r") as f:
-                lines = f.readlines()
-            with open(entry['file'], "w") as f:
-                for line in lines:
-                    if not re.match(SORT_REGEX, line):
-                        f.write(line)
-            entries = extract_sort_values(files)
-            selected_index = min(selected_index, len(entries) - 1)
         elif key == 10:  # Enter key
             if moving_mode:
                 moving_mode = False
                 target_index = selected_index
                 original_entry = entries[original_index]
 
-                # Determine bounds for new sort value
-                if target_index == 0:  # Moved to the top of the list
+                if target_index == 0:
                     lower_bound = 0
                     new_sort = lower_bound - 10
-                elif target_index == len(entries):  # Moved to the end of the list
+                elif target_index == len(entries):
                     lower_bound = entries[-1]['sort'] or 0
                     new_sort = lower_bound + 10
-                else:  # Moved between two entries
+                else:
                     lower_bound = entries[target_index - 1]['sort'] or 0
                     upper_bound = entries[target_index]['sort'] or (lower_bound + 10)
                     new_sort = (lower_bound + upper_bound) / 2
 
-                # Update sort value of the moved entry
                 original_entry['sort'] = new_sort
                 write_sort_value(original_entry['file'], new_sort)
 
-                # Re-sort entries after modification
                 entries.sort(key=lambda x: (x['sort'] if x['sort'] is not None else float('inf'), os.path.basename(x['file'])))
             else:
                 moving_mode = True
@@ -180,4 +159,9 @@ def main(stdscr):
             break
 
 if __name__ == "__main__":
-    curses.wrapper(main)
+    parser = argparse.ArgumentParser(description="Manage markdown files with ncurses.")
+    parser.add_argument("-d", "--directory", type=str, help="Path to the directory containing markdown files.", default=DEFAULT_DIRECTORY)
+    args = parser.parse_args()
+
+    curses.wrapper(main, args.directory)
+
