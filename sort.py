@@ -5,7 +5,8 @@ import curses
 
 # DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Playing")
 # DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Manga/Reading")
-DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Backlog")
+# DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Video Games/Backlog")
+DIRECTORY = os.path.expanduser("~/obsidian/brain/03 - Resources/Books/Backlog")
 PAGE_SIZE = 100
 SORT_REGEX = r"^sort:\s*(-?\d+(\.\d+)?)"
 
@@ -66,7 +67,7 @@ def main(stdscr):
     # Get the current terminal height and adjust PAGE_SIZE accordingly
     terminal_height, _ = stdscr.getmaxyx()
     global PAGE_SIZE
-    PAGE_SIZE = min(PAGE_SIZE, terminal_height - 4)  # Reserve space for status line and other elements
+    PAGE_SIZE = min(PAGE_SIZE, terminal_height - 10)  # Reserve space for status line and other elements
 
     files = read_markdown_files(DIRECTORY)
     entries = extract_sort_values(files)
