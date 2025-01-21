@@ -59,8 +59,12 @@ def resort_all(entries):
     current_value = 0
     for entry in entries:
         if entry['sort'] is not None:  # Include entries with 0, exclude None
-            entry['sort'] = current_value
-            write_sort_value(entry['file'], current_value)
+            if current_value == 0:
+                entry['sort'] = 1
+                write_sort_value(entry['file'], 1)
+            else:
+                entry['sort'] = current_value
+                write_sort_value(entry['file'], current_value)
             current_value += increment
 
 def main(stdscr, directory):
